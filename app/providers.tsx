@@ -1,29 +1,22 @@
-'use client';
+"use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { sepolia } from "wagmi/chains";
-import '@rainbow-me/rainbowkit/styles.css';
-import {
-  getDefaultConfig,
-  RainbowKitProvider,
-} from '@rainbow-me/rainbowkit';
+import "@rainbow-me/rainbowkit/styles.css";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { HeroUIProvider } from "@heroui/react";
+import { config } from "./wagmi";
 
-const client = new QueryClient();
-
-const config = getDefaultConfig({
-  appName: 'envoy',
-  projectId: '6957192661fdd1b73bc6d29a03ca7712',
-  chains: [sepolia,],
-});
+const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    return (<WagmiProvider config={config}>
-          <QueryClientProvider client={client}>
-            <RainbowKitProvider>
-            {children}
-            </RainbowKitProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
-    )
+  return (
+    <HeroUIProvider>
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>{children}</RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </HeroUIProvider>
+  );
 }

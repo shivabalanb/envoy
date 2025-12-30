@@ -1,18 +1,24 @@
 import { Address } from "viem";
 
-export type Organization = {
-  id: string;
-  created_at: string;
-  name: string;
-  smart_account_address: Address;
-  owner_wallet_address: Address;
-};
-
 export type User = {
   id: string;
   created_at: string;
-  org_id: string;
+  org_id: string | null;
   wallet_address: Address;
   name: string;
-  role: "ADMIN" | "MEMBER";
+};
+
+export type Organization = {
+  id: string;
+  name: string;
+  smart_wallet_address: Address;
+  owner_wallet_address: Address;
+};
+
+export type Card = {
+  id: string;
+  created_at: string;
+  org_id: string | null;
+  user_id: string;
+  whitelist: string[];
 };
