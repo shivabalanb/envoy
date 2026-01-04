@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useConnection } from "wagmi";
+import { useAccount } from "wagmi";
 import { User } from "../lib/supabase/types";
 import { checkUserExists } from "../services/userService";
 
 export function useAuth() {
-  const { address, isConnected, isConnecting } = useConnection();
+  const { address, isConnected, isConnecting } = useAccount();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkUser = useCallback(async()=>{
+  const checkUser = useCallback(async () => {
     if (isConnecting) return;
 
     if (!isConnected || !address) {
@@ -28,11 +28,11 @@ export function useAuth() {
     } finally {
       setIsLoading(false);
     }
-  },[isConnecting, address, isConnected])
+  }, [isConnecting, address, isConnected]);
 
   useEffect(() => {
-    checkUser()
-  }, [checkUser ]);
+    checkUser();
+  }, [checkUser]);
 
   return {
     user,
@@ -40,6 +40,6 @@ export function useAuth() {
     isNewUser: !isLoading && isConnected && !user,
     isWalletConnected: isConnected,
     address,
-    refetch: checkUser
+    refetch: checkUser,
   };
 }

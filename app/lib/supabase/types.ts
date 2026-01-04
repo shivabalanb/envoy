@@ -19,6 +19,6 @@ export type Card = {
   id: string;
   created_at: string;
   org_id: string | null;
-  user_id: string;
-  whitelist: string[];
+  issued_to: Address; // The wallet address this card is issued to
+  delegation_blob: string | null; // Serialized delegation data
 };

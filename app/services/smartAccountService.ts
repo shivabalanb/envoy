@@ -1,58 +1,91 @@
 "use client";
 
-import { Address } from "viem";
+import { Account, Address, Chain, keccak256, parseEther, SignableMessage, stringToBytes, Transport, TypedDataDefinition, WalletClient } from "viem";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { sepolia } from "viem/chains";
 import {
   Implementation,
   toMetaMaskSmartAccount,
+  ToMetaMaskSmartAccountReturnType,
 } from "@metamask/smart-accounts-kit";
-import { privateKeyToAccount } from "viem/accounts";
 
-// Create public client for smart account operations
+const ALCHEMY_RPC =
+  "https://eth-sepolia.g.alchemy.com/v2/euJp53PODQmQLSIuUpjlcMeQNtUBEtvT";
+
 function getPublicClient(): PublicClient {
   return createPublicClient({
     chain: sepolia,
-    transport: http(),
+    transport: http(ALCHEMY_RPC),
   });
 }
+export async function createSmartAccount(
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  owner: Address,
+  orgName: string
+) {
+  if (walletClient.account) {
+    const account = walletClient.account as any;
 
-/**
- * Creates a MetaMask smart account address for an organization
- * The account is counterfactual (address exists but not deployed until first use)
- *
- * The address is deterministic based on the owner address and deploy params.
- * We use a dummy account just to satisfy the function signature - the actual
- * account's private key doesn't affect the computed address.
- *
- * @param ownerAddress - The EOA address that will own the smart account
- * @returns The smart account address
- */
-export async function createSmartAccountAddress(
-  ownerAddress: Address
-): Promise<Address> {
-  const publicClient = getPublicClient();
+    // Add signMessage if missing
+    if (!account.signMessage) {
+      account.signMessage = ({ message }: { message: SignableMessage }) => {
+        return walletClient.signMessage({
+          account: owner,
+          message,
+        });
+      };
+    }
 
-  // Create a dummy account just for address computation
-  // The address is deterministic and doesn't depend on this account's private key
-  const dummyAccount = privateKeyToAccount(
-    "0x0000000000000000000000000000000000000000000000000000000000000001"
-  );
+    // Add signTypedData if missing
+    if (!account.signTypedData) {
+      account.signTypedData = (args: TypedDataDefinition) => {
+        return walletClient.signTypedData({
+          account: owner,
+          ...args,
+        });
+      };
+    }
+  }
 
-  // Create a counterfactual smart account (address only, not deployed)
-  // Using Hybrid implementation which supports EOA owners
+  const salt = keccak256(stringToBytes(orgName));
+
   const smartAccount = await toMetaMaskSmartAccount({
     client: publicClient,
     implementation: Implementation.Hybrid,
-    deployParams: [
-      ownerAddress, // EOA owner address
-      [], // Passkey signers (empty for now)
-      [], // Additional params
-      [], // Additional params
-    ],
-    deploySalt: "0x", // Use default salt
-    signer: { account: dummyAccount },
+    deployParams: [owner, [], [], []],
+    deploySalt: salt,
+    signer: walletClient as WalletClient<Transport, Chain, Account>,
   });
 
-  return smartAccount.address as Address;
+  console.log(smartAccount.address);
+
+  return smartAccount;
+}
+
+export async function deploySmartAccount(
+  smartAccount: ToMetaMaskSmartAccountReturnType<Implementation.Hybrid>,
+  walletClient: WalletClient,
+  publicClient: PublicClient
+) {
+  const { factory, factoryData } = await smartAccount.getFactoryArgs();
+
+  console.log("Deployment Args Debug:", factory, factoryData);
+
+  const deployHash = await walletClient.sendTransaction({
+    to: factory,
+    data: factoryData,
+    account: walletClient.account!,
+    chain: sepolia,
+  });
+
+  console.log("Deployment Tx Hash:", deployHash);
+
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash: deployHash,
+  });
+
+  console.log("done!");
+
+  return receipt;
 }

@@ -10,21 +10,18 @@ import {
   Input,
 } from "@heroui/react";
 import { FormEvent, useState } from "react";
-import { Address } from "viem";
-import { useAccount } from "wagmi";
 
-interface CreateOrgModalProps {
-  onSubmit: (orgName: string, ownerWalletAddress: Address) => Promise<void>;
+interface JoinOrgModalProps {
+  onSubmit: (orgId: string) => Promise<void>;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateOrgModal({
+export function JoinOrgModal({
   isOpen,
   onOpenChange,
   onSubmit,
-}: CreateOrgModalProps) {
-  const { address } = useAccount();
+}: JoinOrgModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -35,29 +32,23 @@ export function CreateOrgModal({
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const orgName = ((formData.get("org_name") as string) ?? "").trim();
+    const orgId = ((formData.get("org_id") as string) ?? "").trim();
 
-    if (!orgName) {
-      setError("Please enter an organization name");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!address) {
-      setError("Wallet not connected");
+    if (!orgId) {
+      setError("Please enter an organization ID");
       setIsLoading(false);
       return;
     }
 
     try {
-      await onSubmit(orgName, address);
+      await onSubmit(orgId);
       setSuccess(true);
       setTimeout(() => {
         handleClose();
       }, 2000);
     } catch (error: any) {
-      console.error("Failed to create org:", error);
-      setError(error.message || "Failed to create organization");
+      console.error("Failed to join org:", error);
+      setError(error.message || "Failed to join organization");
     } finally {
       setIsLoading(false);
     }
@@ -76,40 +67,32 @@ export function CreateOrgModal({
           <>
             <form onSubmit={handleSubmit}>
               <ModalHeader className="flex flex-col gap-1">
-                <span className="text-xl">Create Organization</span>
+                <span className="text-xl">Join Organization</span>
                 <span className="text-sm font-normal text-gray-500">
-                  Set up a new organization with a smart account treasury
+                  Enter the organization ID to join
                 </span>
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-5">
-                  {address && (
-                    <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded-xl">
-                      <p className="text-xs text-gray-400 mb-1">Owner Wallet</p>
-                      <p className="text-sm font-mono break-all">{address}</p>
-                    </div>
-                  )}
-
                   <Input
                     isRequired
-                    label="Organization Name"
+                    label="Organization ID"
                     labelPlacement="outside"
-                    name="org_name"
-                    placeholder="e.g. acme-corp"
-                    description="A unique name for your organization (lowercase)"
+                    name="org_id"
+                    placeholder="Enter organization UUID"
+                    description="The unique ID of the organization you want to join"
                     isDisabled={isLoading || success}
                     autoFocus
                   />
 
                   <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                     <p className="text-sm text-amber-500 font-medium mb-2">
-                      What happens next:
+                      Instant Approval
                     </p>
-                    <ul className="text-xs text-gray-400 space-y-1">
-                      <li>• A smart account will be deployed for your org</li>
-                      <li>• 0.01 ETH will be transferred to the treasury</li>
-                      <li>• You&apos;ll become the admin and can issue cards</li>
-                    </ul>
+                    <p className="text-xs text-gray-400">
+                      You&apos;ll be automatically added to the organization. 
+                      An admin can issue you a spending card after you join.
+                    </p>
                   </div>
 
                   {error && (
@@ -121,7 +104,7 @@ export function CreateOrgModal({
                   {success && (
                     <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
                       <p className="text-sm text-green-400 font-medium">
-                        ✓ Organization created successfully!
+                        ✓ Successfully joined the organization!
                       </p>
                     </div>
                   )}
@@ -142,7 +125,7 @@ export function CreateOrgModal({
                     isLoading={isLoading}
                     isDisabled={isLoading}
                   >
-                    {isLoading ? "Creating..." : "Create Organization"}
+                    {isLoading ? "Joining..." : "Join Organization"}
                   </Button>
                 )}
               </ModalFooter>
@@ -153,3 +136,4 @@ export function CreateOrgModal({
     </Modal>
   );
 }
+
